@@ -1,0 +1,50 @@
+---
+- name: vCenter-Inventar erfassen
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Datacenter
+      community.vmware.vmware_datacenter_info:
+      register: dc
+
+    - name: Cluster
+      vmware.vmware.cluster_info:
+        datacenter: "{{ dc.datacenter_info[0].name }}"
+      register: cl
+
+    - name: Datastores
+      community.vmware.vmware_datastore_info:
+        datacenter: "{{ dc.datacenter_info[0].name }}"
+      register: ds
+
+    - name: VM-Ordner
+      community.vmware.vmware_folder_info:
+        datacenter: "{{ dc.datacenter_info[0].name }}"
+      register: folders
+
+    - name: DVS-Portgruppen
+      community.vmware.vmware_dvs_portgroup_info:
+        datacenter: "{{ dc.datacenter_info[0].name }}"
+      register: pg
+      ignore_errors: true
+
+    - name: VMs und Templates (liefert Ordnerpfade)
+      community.vmware.vmware_vm_info:
+      register: vms
+
+    - name: Customization Specifications
+      community.vmware.vmware_guest_customization_info:
+      register: specs
+
+    - name: Standard-vSwitch-Portgruppen am Host
+      community.vmware.vmware_portgroup_info:
+        esxi_hostname: "{{ esxi_hostname }}"
+      register: pg_standard
+
+    - name: Rohdaten ablegen
+      ansible.builtin.copy:
+        dest: "./inventar_roh.json"
+        content: "{{ {'dc': dc, 'cluster': cl, 'datastore': ds,
+                      'folders': folders, 'portgroups': pg,
+                      'vms': vms, 'specs': specs, 'portgroups': pg_standard, 'dvs_portgroups': pg_dvs} | to_nice_json }}"

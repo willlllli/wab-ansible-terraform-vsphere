@@ -1,0 +1,7 @@
+datacenter: "<datacenter>"
+folder: "vm/WAB"
+esxi_hostname: "<esxi_hostname>"
+portgroup: "<portgroup>"
+vlan_id: "<vlan_id>"
+vswitch: "<vswitch>"
+name: "<storage>"

@@ -1,0 +1,6 @@
+# ~/wab-setup/requirements.yml
+collections:
+  - name: ./vmware-vmware-2.10.0.tar.gz
+    type: file
+  - name: ./community-vmware-6.2.1.tar.gz
+    type: file
