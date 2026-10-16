@@ -1,0 +1,75 @@
+---
+# ~/iac_lab/ansible/cleanup.yml
+# Phase "reset": dieselben p VMs wie im Deploy entfernen.
+# Abschaltverhalten symmetrisch zu Terraform (shutdown_wait_timeout +
+# force_power_off): geordnet ueber VMware Tools herunterfahren, bis zu
+# timeouts_min.shutdown Minuten warten, sonst hart ausschalten, dann loeschen.
+#
+#   cd ~/iac_lab/ansible && source ~/iac_lab/secrets.env
+#   ansible-playbook -f <p> -e vm_count=<p> cleanup.yml
+#
+# Sicherheitsregel: ausschliesslich die explizite Namensliste aus
+# select_slots.yml - nie Wildcards, nie Ordnerinhalte, nie das Template.
+
+- name: Stufe auswaehlen
+  ansible.builtin.import_playbook: select_slots.yml
+
+- name: Reset - herunterfahren, ggf. hart ausschalten, loeschen
+  hosts: wab_vms
+  gather_facts: false
+  strategy: linear          # Gleichschritt: Loeschen beginnt erst nach der langsamsten VM
+  vars_files:
+    - ../inventory.yaml
+
+  tasks:
+    - name: Sicherheitspruefung - nur Slot-VMs dieses Werkzeugs
+      ansible.builtin.assert:
+        that:
+          - inventory_hostname is match('^' ~ naming.ansible_prefix ~ '[0-9]{2}$')
+          - inventory_hostname != template_name
+        quiet: true
+
+    - name: Geordnet herunterfahren mit Wartezeit
+      block:
+        - name: Gast ueber VMware Tools herunterfahren, auf poweredOff warten
+          community.vmware.vmware_guest:
+            datacenter: "{{ datacenter }}"
+            folder: "{{ an_vcenter_folder }}"
+            name: "{{ inventory_hostname }}"
+            state: shutdownguest
+            # Terraform rechnet in Minuten, das Modul in Sekunden.
+            state_change_timeout: "{{ (timeouts_min.shutdown | int) * 60 }}"
+      rescue:
+        - name: Fallback protokollieren (Kategorie aus der Modulmeldung)
+          # Stabiler Marker fuer die Auswertung der Reset-Zeit im Wrapper-Log.
+          # Meldungen laut community.vmware 6.2.1, module_utils/vmware.py:
+          #   timeout     'Timeout while waiting for VM power off.' (wait_for_poweroff,
+          #               15-s-Takt; eine VM, die erst im letzten Intervall ausgeht,
+          #               landet ebenfalls hier - dann folgt kein harter Power-Off)
+          #   tools       'VMware tools should be installed for guest shutdown/reboot'
+          #   zustand     '... must be in poweredon state for guest reboot'
+          #               (VM weder an noch aus, z. B. suspended; Wortlaut spricht
+          #               auch beim Shutdown von "reboot")
+          #   sonstig     alles andere
+          # KEINEN Marker erzeugen (Shutdown-Task endet mit ok, kein rescue):
+          #   - VM bereits ausgeschaltet (eigener poweredoff-Zweig, changed=False)
+          #   - VM existiert nicht (shutdownguest und absent enden still mit ok)
+          ansible.builtin.debug:
+            msg: "WAB-FALLBACK {{ inventory_hostname }} {{ wab_cat }}: {{ wab_msg }}"
+          vars:
+            wab_msg: "{{ ansible_failed_result.msg | default('ohne Meldung') }}"
+            wab_cat: >-
+              {{ 'timeout' if 'Timeout while waiting' in wab_msg
+              else 'tools' if 'VMware tools should be installed' in wab_msg
+              else 'zustand' if 'must be in poweredon state' in wab_msg
+              else 'sonstig' }}
+
+    - name: VM loeschen (laeuft sie noch, vorher harter Power-Off)
+      community.vmware.vmware_guest:
+        datacenter: "{{ datacenter }}"
+        folder: "{{ an_vcenter_folder }}"
+        name: "{{ inventory_hostname }}"
+        state: absent
+        # Laut Doku noetig, um eine eingeschaltete VM zu entfernen. Greift nur
+        # im Fallback-Fall; nach erfolgreichem Shutdown ist die VM bereits aus.
+        force: true

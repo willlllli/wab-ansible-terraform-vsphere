@@ -1,0 +1,99 @@
+---
+# ~/iac_lab/ansible/select_slots.yml
+# Gemeinsames Vor-Play fuer deploy.yml und cleanup.yml.
+#
+# - liest inventory.yaml als einzige Quelle (wie Terraform per yamldecode)
+# - prueft Aufrufparameter und Inventarwerte, bevor irgendetwas am vCenter passiert
+# - legt die p VMs der aktuellen Stufe als Ansible-Hosts an (host-basierte Struktur)
+#
+# Deploy und Reset arbeiten dadurch aus derselben expliziten Namensliste.
+# Keine Wildcards, keine Namensmuster gegen das vCenter, kein "alles im Ordner"
+# (VCSA steht im selben Inventar).
+#
+# Aufruf, immer beide Werte identisch = Stufe p:
+#   ansible-playbook -f <p> -e vm_count=<p> deploy.yml
+#   ansible-playbook -f <p> -e vm_count=<p> cleanup.yml
+
+- name: Stufe auswaehlen und Vorbedingungen pruefen
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../inventory.yaml
+  vars:
+    wab_allowed_levels: [1, 2, 4, 8, 16, 32]
+    wab_timeout_keys: [clone, customization, guest_net, shutdown]
+    wab_env_keys: [VMWARE_HOST, VMWARE_USER, VMWARE_PASSWORD, VMWARE_VALIDATE_CERTS]
+
+  tasks:
+    - name: Aufruf pruefen - Stufe zulaessig, forks identisch zur Stufe
+      ansible.builtin.assert:
+        that:
+          - vm_count is defined
+          - (vm_count | string) is match('^[0-9]+$')
+          - (vm_count | int) in wab_allowed_levels
+          - (ansible_forks | int) == (vm_count | int)
+        fail_msg: >-
+          Aufruf: ansible-playbook -f <p> -e vm_count=<p> ..., p aus {{ wab_allowed_levels }}.
+          Erhalten: vm_count={{ vm_count | default('nicht gesetzt') }}, forks={{ ansible_forks }}.
+        quiet: true
+
+    - name: Zugangsdaten aus secrets.env vorhanden
+      ansible.builtin.assert:
+        that:
+          - lookup('ansible.builtin.env', item) | length > 0
+        fail_msg: "Umgebungsvariable {{ item }} fehlt - 'source ~/iac_lab/secrets.env' vergessen?"
+        quiet: true
+      loop: "{{ wab_env_keys }}"
+
+    - name: Timeouts sind ganze Minuten groesser 0 (Gegenstueck zur Terraform-Precondition)
+      ansible.builtin.assert:
+        that:
+          - timeouts_min[item] is defined
+          - (timeouts_min[item] | string) is match('^[0-9]+$')
+          - (timeouts_min[item] | int) > 0
+        fail_msg: "timeouts_min.{{ item }} muss eine ganze Zahl > 0 (Minuten) sein."
+        quiet: true
+      loop: "{{ wab_timeout_keys }}"
+
+    - name: Inventarwerte plausibel
+      ansible.builtin.assert:
+        that:
+          - (naming.ansible_prefix | string) is match('^[a-z0-9-]+-$')
+          - naming.ansible_prefix != naming.terraform_prefix
+          # Zweite Schutzschicht: Ziel ist ausschliesslich der Benchmark-Ordner.
+          - (an_vcenter_folder | string) is search('(^|/)wab-benchmark$')
+          - (hardware.num_cpus | string) is match('^[0-9]+$')
+          - (hardware.memory_mb | string) is match('^[0-9]+$')
+          - (hardware.disk_size_gb | string) is match('^[0-9]+$')
+        quiet: true
+
+    - name: Slot-Tabelle aufbauen (ID zweistellig normalisiert, wie in Terraform)
+      # inventory.yaml wird als YAML 1.1 gelesen: 01..07 kommen als Zahl, 08/09
+      # als Zeichenkette an. '%02d' | format(id | int) vereinheitlicht beides.
+      ansible.builtin.set_fact:
+        wab_slot_table: "{{ wab_slot_table | default({}) | combine({('%02d' | format(item.id | int)): item.spec}) }}"
+      loop: "{{ slots }}"
+      loop_control:
+        label: "{{ item.id }}"
+
+    - name: Slot-IDs eindeutig, genug Slots fuer die Stufe
+      ansible.builtin.assert:
+        that:
+          - (wab_slot_table | length) == (slots | length)
+          - (wab_slot_table | length) >= (vm_count | int)
+        fail_msg: "Doppelte Slot-IDs in inventory.yaml oder weniger Slots als vm_count."
+        quiet: true
+
+    - name: VMs der Stufe als Hosts anlegen (erste p Slots nach ID)
+      ansible.builtin.add_host:
+        name: "{{ naming.ansible_prefix }}{{ item.key }}"
+        groups: wab_vms
+        # Alle Tasks laufen auf dem Control-Node gegen die vCenter-API;
+        # die VMs selbst werden nie direkt angesprochen.
+        ansible_connection: local
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+        wab_slot_spec: "{{ item.value }}"
+      loop: "{{ (wab_slot_table | dict2items | sort(attribute='key'))[:(vm_count | int)] }}"
+      loop_control:
+        label: "{{ naming.ansible_prefix }}{{ item.key }}"

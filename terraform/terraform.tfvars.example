@@ -1,0 +1,19 @@
+# Kopie als terraform.tfvars anlegen (ignoriert) und Werte aus inventory.yaml eintragen.
+# Objektreferenzen maskiert, Messparameter real (Maskierungsregel, Kontext_WAB.md).
+# vm_count NICHT hier setzen, sondern je Aufruf: -var vm_count=<p>
+
+datacenter = "<Datacenter>"
+esxi_host  = "<ESXi-Host 3>"
+datastore  = "<lokales VMFS Host 3>"
+network    = "<Portgruppe VLAN 960>"
+template   = "wab-template-win2022"
+folder     = "wab-benchmark"
+
+num_cpus     = 2
+memory_mb    = 4096
+disk_size_gb = 40
+
+# Waiter in MINUTEN - vor dem Vorlauf festlegen, identisch zu Ansible (dort Sekunden)
+clone_timeout_min         = 0 # FESTLEGEN
+customization_timeout_min = 0 # FESTLEGEN
+guest_net_timeout_min     = 0 # FESTLEGEN

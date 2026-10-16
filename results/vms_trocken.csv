@@ -1,0 +1,12 @@
+phase,plan_id,werkzeug,stufe,vm,slot,ok,ursache,exists,power,tools,ip,hostname,details,t_customization_start_s,t_customization_ok_s,customization_fehler,poweron_tasks,harte_abschaltungen
+trocken,2,an,2,wab-an-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-01',135.770,362.453,0,1,0
+trocken,2,an,2,wab-an-02,02,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-02',135.562,374.231,0,1,0
+trocken,3,tf,1,wab-tf-01,01,0,exists,0,,,,,exists=0 Treffer,,,0,0,0
+trocken,4,an,1,wab-an-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-01',91.749,296.074,0,1,0
+trocken,5,an,1,wab-an-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-01',90.729,295.143,0,1,0
+trocken,8,tf,2,wab-tf-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-tf-01',138.874,372.510,0,1,0
+trocken,8,tf,2,wab-tf-02,02,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-tf-02',139.670,371.885,0,1,0
+trocken,9,tf,2,wab-tf-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-tf-01',137.808,371.971,0,1,0
+trocken,9,tf,2,wab-tf-02,02,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-tf-02',137.537,364.612,0,1,0
+trocken,10,an,2,wab-an-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-01',132.397,361.682,0,1,0
+trocken,10,an,2,wab-an-02,02,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-02',132.199,367.300,0,1,0

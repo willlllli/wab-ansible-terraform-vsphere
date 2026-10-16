@@ -1,16 +1,7 @@
-terraform {
-  required_providers {
-    vsphere = {
-      source  = "vmware/vsphere"
-      version = "2.15.2"
-    }
-  }
-}
-
+# Zugangsdaten ausschliesslich ueber Umgebungsvariablen aus secrets.env:
+# VSPHERE_SERVER, VSPHERE_USER, VSPHERE_PASSWORD.
 provider "vsphere" {
-  vsphere_server       = var.vsphere_server
-  user                 = var.vsphere_user
-  password             = var.vsphere_password
+  # Zertifikatspruefung deaktiviert, symmetrisch zu VMWARE_VALIDATE_CERTS=false
+  # auf der Ansible-Seite (AKI/SKI-Mismatch der VMCA, s. Kontext_WAB.md).
   allow_unverified_ssl = true
 }
-

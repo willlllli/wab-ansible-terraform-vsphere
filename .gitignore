@@ -1,76 +1,56 @@
-# ============================================
-# Secrets - unter keinen Umstaenden committen
-# ============================================
-secrets.env
-*.env
-!*.env.example
+# .gitignore fuer ~/iac_lab (WAB "Terraform vs. Ansible")
+# Grundsatz: Namensmuster statt exakter Dateinamen; vor jedem git add
+# mit "git check-ignore -v <datei>" pruefen.
 
-# SSH- und Zertifikatsmaterial
+# --- Zugangsdaten und Schluesselmaterial ---
+*.env
 *.pem
 *.key
-id_rsa*
+*.crt
 *.p12
 *.pfx
-certs/
-download.zip
+*.ppk
+id_rsa*
+id_ed25519*
 
-# ============================================
-# Terraform
-# ============================================
+# --- Inventar mit echten Objektreferenzen (versioniert wird nur *.example) ---
+[Ii]nventory*.yaml
+[Ii]nventory*.yml
+[Ii]nventar_roh*.json
+
+# --- Terraform ---
+# .terraform.lock.hcl bleibt bewusst versioniert
 .terraform/
-.terraform.tfstate.lock.info
 *.tfstate
 *.tfstate.*
+.terraform.tfstate.lock.info
+*.tfvars
+tfplan*
+*.tfplan
+plan.txt
 crash.log
 crash.*.log
-# tfvars enthaelt Inventar-Bezeichner (vCenter-FQDN, Datastore,
-# Portgruppe) - nicht ins Repo. Struktur ueber .example dokumentieren.
-*.tfvars
-*.tfvars.json
-!*.tfvars.example
-# .terraform.lock.hcl wird BEWUSST versioniert (Provider-Pinning)
 
-# ============================================
-# Ansible
-# ============================================
-*.retry
-ansible.log
-# Inventar mit echten Hostnamen / vCenter-Daten
-inventar_roh.json
-inventory.y*ml
-inventory.ini
-host_vars/
-group_vars/*/vault.yml
-!inventory.y*ml.example
-
-# ============================================
-# Python / venv
-# ============================================
-venv-wab/
-venv/
+# --- Python ---
+venv*/
 .venv/
 __pycache__/
-*.py[cod]
-*.egg-info/
+*.pyc
 
-# ============================================
-# Offline-Artefakte (nicht ins Repo, liegen in ~/wab-setup)
-# ============================================
-wheelhouse/
+# --- Ansible ---
+*.retry
+
+# --- Laufzeitdaten des Wrappers (results/*.csv bleibt bewusst versioniert) ---
+logs/
+run/
+
+# --- Installationsartefakte (gross, teils lizenzpflichtig) ---
+# Verzeichnisinhalt ignorieren, requirements.yaml ausnehmen; das geht nur mit "/*",
+# nicht mit "wab-setup/", weil Git in ein ignoriertes Verzeichnis nicht hineinsieht.
+wab-setup/*
+!wab-setup/requirements.yaml
+*.iso
+*.ISO
+*.whl
 *.tar.gz
 *.zip
-*.tf-mirror/
-
-# ============================================
-# Editor / OS
-# ============================================
-.vscode/
-.idea/
-*.swp
-*~
-.DS_Store
-
-# ============================================
-# Messergebnisse werden BEWUSST versioniert:
-# results/*.csv nicht ignorieren - das sind die Forschungsdaten
-# ============================================

@@ -1,7 +1,86 @@
 datacenter: "<datacenter>"
-folder: "vm/WAB"
 esxi_hostname: "<esxi_hostname>"
-portgroup: "<portgroup>"
-vlan_id: "<vlan_id>"
-vswitch: "<vswitch>"
-name: "<storage>"
+datastore: "<storage>"
+
+network:
+  portgroup: "<portgroup>"
+  vlan_id: "<vlan_id>"
+  vswitch: "<vswitch>"
+  subnet: "<subnet>"
+  prefix_length: 24
+  gateway: "<subnet>.1"
+
+hardware:
+  num_cpus: 2
+  memory_mb: 4096
+  disk_size_gb: 40
+  disk_thin: true
+
+timeouts_min:
+  clone: 60
+  customization: 30
+  guest_net: 30
+  shutdown: 3
+
+template_name: "wab-template-win2022"
+
+an_vcenter_folder: "vm/wab-benchmark"
+an_template_path: "vm/wab-templates"
+
+tf_vcenter_folder: "wab-benchmark"
+tf_template_path: "wab-templates"
+
+naming:
+  ansible_prefix: "wab-an-"
+  terraform_prefix: "wab-tf-"
+
+slots:
+  - id: "01"
+    spec: "wab-spec-win2022-01"
+    ip: "<subnet>.11"
+  - id: "02"
+    spec: "wab-spec-win2022-02"
+    ip: "<subnet>.12"
+  - id: "03"
+    spec: "wab-spec-win2022-03"
+    ip: "<subnet>.13"
+  - id: "04"
+    spec: "wab-spec-win2022-04"
+    ip: "<subnet>.14"
+  - id: "05"
+    spec: "wab-spec-win2022-05"
+    ip: "<subnet>.15"
+  - id: "06"
+    spec: "wab-spec-win2022-06"
+    ip: "<subnet>.16"
+  - id: "07"
+    spec: "wab-spec-win2022-07"
+    ip: "<subnet>.17"
+  - id: "08"
+    spec: "wab-spec-win2022-08"
+    ip: "<subnet>.18"
+  - id: "09"
+    spec: "wab-spec-win2022-09"
+    ip: "<subnet>.19"
+  - id: "10"
+    spec: "wab-spec-win2022-10"
+    ip: "<subnet>.20"
+  - id: "11"
+    spec: "wab-spec-win2022-11"
+    ip: "<subnet>.21"
+  - id: "12"
+    spec: "wab-spec-win2022-12"
+    ip: "<subnet>.22"
+  - id: "13"
+    spec: "wab-spec-win2022-13"
+    ip: "<subnet>.23"
+  - id: "14"
+    spec: "wab-spec-win2022-14"
+    ip: "<subnet>.24"
+  - id: "15"
+    spec: "wab-spec-win2022-15"
+    ip: "<subnet>.25"
+  - id: "16"
+    spec: "wab-spec-win2022-16"
+    ip: "<subnet>.26"
+
