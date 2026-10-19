@@ -5,13 +5,16 @@ Liegt in scripts/ neben ansible/, terraform/ und inventory.yaml; Ergebnisse,
 Logs und Laufdateien entstehen eine Ebene hoeher (results/, logs/, run/).
 Start ueber scripts/start_wrapper.sh (laedt secrets.env, nutzt den Python des venv).
 
-  wrapper.py plan --phase trocken|vorlauf|haupt --runden N --seed S
-                  [--stufen 1 2 4 8 16] [--werkzeuge tf an]
+  wrapper.py plan --phase trocken|vorlauf|vorlauf32|haupt --runden N --seed S
+                  [--stufen 1 2 4 8 16 32] [--werkzeuge tf an]
       Erzeugt den Ablaufplan run/plan_<phase>.json: je Runde jede Stufe einmal
       mit jedem Werkzeug, Stufenreihenfolge je Runde mit festem Seed
       randomisiert, startendes Werkzeug wechselt je Runde.
+      Phase vorlauf32: nachgezogener Vorlauf nur fuer Stufe 32 (eigener Plan
+      und eigene Ergebnisdateien, der Vorlauf der Stufen 1-16 bleibt unberuehrt),
+      z. B. plan --phase vorlauf32 --runden 5 --seed S --stufen 32.
 
-  wrapper.py run --phase trocken|vorlauf|haupt
+  wrapper.py run --phase trocken|vorlauf|vorlauf32|haupt
       Arbeitet den Plan ab. Bereits protokollierte Eintraege werden
       uebersprungen; nach einem Abbruch genuegt derselbe Aufruf.
 
@@ -53,7 +56,7 @@ import yaml
 
 import validate_vms as vv
 
-WRAPPER_VERSION = "1.2"
+WRAPPER_VERSION = "1.3"
 
 # ------------------------------------------------------------------ Pfade
 SCRIPT_DIR = Path(__file__).resolve().parent   # ~/iac_lab/scripts
@@ -76,7 +79,8 @@ VALIDATE_TIMEOUT_S = 600
 VALIDATE_INTERVAL_S = 5
 PAUSE_S = 60                        # nach jedem Zyklus, auch nach ungueltigen
 RETRY_WAITS_S = (300, 900, 1800)    # Exit-Code 2: Wartezeiten vor Wiederholung
-WATCHDOG_DEPLOY_S = 3 * 3600        # Notbremse gegen haengende Werkzeuge
+WATCHDOG_DEPLOY_S = 6 * 3600        # Notbremse gegen haengende Werkzeuge; muss ueber
+                                    # clone + customization + guest_net liegen (lade_inventar)
 WATCHDOG_RESET_S = 3600
 WATCHDOG_AUFRAEUMEN_S = 3600
 WATCHDOG_VALIDATE_S = VALIDATE_TIMEOUT_S + 600
@@ -84,7 +88,7 @@ MAX_NACHHOL = 3                     # je Planeintrag, danach Halt
 VC_FENSTER_VORLAUF_S = 120          # Zeitfenster der Task-/Event-Abfrage
 STUFEN_ERLAUBT = (1, 2, 4, 8, 16, 32)
 WERKZEUGE = ("tf", "an")
-PHASEN = ("trocken", "vorlauf", "haupt")
+PHASEN = ("trocken", "vorlauf", "vorlauf32", "haupt")
 FALLBACK_RE = re.compile(r"WAB-FALLBACK \S+ \S+:")
 
 TF_ENV = {"TF_IN_AUTOMATION": "1", "TF_INPUT": "0"}
@@ -199,10 +203,19 @@ def lade_inventar():
     tm = data.get("timeouts_min") or {}
     timeouts = ",".join(f"{k}={tm[k]}" for k in sorted(tm))
     max_stufe = max(s for s in STUFEN_ERLAUBT if s <= len(slots))
-    try:
-        clone_min = int(tm.get("clone"))
-    except (TypeError, ValueError):
-        raise vv.ConfigError("timeouts_min.clone fehlt oder ist keine ganze Zahl")
+    waiter = {}
+    for k in ("clone", "customization", "guest_net"):
+        try:
+            waiter[k] = int(tm.get(k))
+        except (TypeError, ValueError):
+            raise vv.ConfigError(f"timeouts_min.{k} fehlt oder ist keine ganze Zahl")
+    # Ein haengender Terraform-Zyklus muss an einem Waiter-Timeout scheitern
+    # (fehlerhaft), nicht am Watchdog (ungueltig, wuerde nachgeholt).
+    if sum(waiter.values()) * 60 >= WATCHDOG_DEPLOY_S:
+        raise vv.ConfigError(
+            f"WATCHDOG_DEPLOY_S ({WATCHDOG_DEPLOY_S // 60} min) liegt nicht ueber "
+            f"clone + customization + guest_net ({sum(waiter.values())} min)")
+    clone_min = waiter["clone"]
     return {"slots": slots, "prefixes": prefixes, "template": template,
             "timeouts": timeouts, "max_stufe": max_stufe, "clone_min": clone_min}
 
@@ -606,7 +619,10 @@ def cmd_plan(a):
     falsch = [s for s in stufen if s not in STUFEN_ERLAUBT]
     if falsch:
         sys.exit(f"Stufen nicht erlaubt: {falsch} (erlaubt: {STUFEN_ERLAUBT})")
-    inv = lade_inventar()
+    try:
+        inv = lade_inventar()
+    except vv.ConfigError as e:
+        sys.exit(f"Konfiguration: {e}")
     if max(stufen) > len(inv["slots"]):
         sys.exit(f"Stufe {max(stufen)} > Slots im Inventar ({len(inv['slots'])})")
     werkzeuge = list(dict.fromkeys(a.werkzeuge))
@@ -875,7 +891,7 @@ def main():
     pl.add_argument("--phase", choices=PHASEN, required=True)
     pl.add_argument("--runden", type=int, required=True)
     pl.add_argument("--seed", type=int, required=True)
-    pl.add_argument("--stufen", type=int, nargs="+", default=[1, 2, 4, 8, 16])
+    pl.add_argument("--stufen", type=int, nargs="+", default=[1, 2, 4, 8, 16, 32])
     pl.add_argument("--werkzeuge", nargs="+", choices=WERKZEUGE, default=list(WERKZEUGE))
     ru = sub.add_parser("run", help="Plan abarbeiten (oder fortsetzen)")
     ru.add_argument("--phase", choices=PHASEN, required=True)

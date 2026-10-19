@@ -17,9 +17,9 @@ hardware:
   disk_thin: true
 
 timeouts_min:
-  clone: 60
-  customization: 30
-  guest_net: 30
+  clone: 180
+  customization: 60
+  guest_net: 60
   shutdown: 3
 
 template_name: "wab-template-win2022"
@@ -83,4 +83,52 @@ slots:
   - id: "16"
     spec: "wab-spec-win2022-16"
     ip: "<subnet>.26"
+  - id: "17"
+    spec: "wab-spec-win2022-17"
+    ip: "<subnet>.27"
+  - id: "18"
+    spec: "wab-spec-win2022-18"
+    ip: "<subnet>.28"
+  - id: "19"
+    spec: "wab-spec-win2022-19"
+    ip: "<subnet>.29"
+  - id: "20"
+    spec: "wab-spec-win2022-20"
+    ip: "<subnet>.30"
+  - id: "21"
+    spec: "wab-spec-win2022-21"
+    ip: "<subnet>.31"
+  - id: "22"
+    spec: "wab-spec-win2022-22"
+    ip: "<subnet>.32"
+  - id: "23"
+    spec: "wab-spec-win2022-23"
+    ip: "<subnet>.33"
+  - id: "24"
+    spec: "wab-spec-win2022-24"
+    ip: "<subnet>.34"
+  - id: "25"
+    spec: "wab-spec-win2022-25"
+    ip: "<subnet>.35"
+  - id: "26"
+    spec: "wab-spec-win2022-26"
+    ip: "<subnet>.36"
+  - id: "27"
+    spec: "wab-spec-win2022-27"
+    ip: "<subnet>.37"
+  - id: "28"
+    spec: "wab-spec-win2022-28"
+    ip: "<subnet>.38"
+  - id: "29"
+    spec: "wab-spec-win2022-29"
+    ip: "<subnet>.39"
+  - id: "30"
+    spec: "wab-spec-win2022-30"
+    ip: "<subnet>.40"
+  - id: "31"
+    spec: "wab-spec-win2022-31"
+    ip: "<subnet>.41"
+  - id: "32"
+    spec: "wab-spec-win2022-32"
+    ip: "<subnet>.42"
 
