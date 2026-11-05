@@ -23,6 +23,20 @@ Start ueber scripts/start_wrapper.sh (laedt secrets.env, nutzt den Python des ve
 
 Anhalten nach dem laufenden Zyklus: Datei run/STOP anlegen (touch run/STOP).
 
+Aenderungen in 1.4 (nach dem Hauptlauf; Messablauf und Zeitmessung unveraendert):
+  - Zyklen, die ungueltig werden und die Reihe anhalten (Anmeldung abgelehnt,
+    Watchdog in Deploy oder Reset), werden wie alle anderen ungueltigen Zyklen
+    zum Nachholen am Planende vorgemerkt. In 1.3 galten sie beim Fortsetzen
+    als erledigt und wurden nie nachgeholt.
+  - Reste im precheck werden dem letzten Zyklus des Werkzeugs zugeordnet, der
+    ein Deployment gestartet hat, nicht dem letzten mit durchgefuehrtem Reset.
+    Der Zuordnungsstand liegt in run/letzter_<phase>.json und uebersteht einen
+    Neustart. In 1.3 landete ein Rest nach Halt vor dem Reset beim
+    vorangehenden Zyklus.
+  - Beim Beenden eines Werkzeugs werden nach dem Ende des Hauptprozesses
+    verbliebene Mitglieder seiner Prozessgruppe (z. B. Terraform-Provider)
+    hart beendet, damit keine verwaisten Prozesse zurueckbleiben.
+
 Ein Zyklus: precheck -> deploy -> validate -> reset, immer vollstaendig.
 Gemessen wird mit monotoner Uhr um den Werkzeugaufruf (Hauptkennzahl),
 nicht aus Werkzeugausgaben. validate_vms.py entscheidet ueber Erfolg oder
@@ -56,7 +70,7 @@ import yaml
 
 import validate_vms as vv
 
-WRAPPER_VERSION = "1.3"
+WRAPPER_VERSION = "1.4"
 
 # ------------------------------------------------------------------ Pfade
 SCRIPT_DIR = Path(__file__).resolve().parent   # ~/iac_lab/scripts
@@ -236,9 +250,15 @@ def beende_gruppe(p):
             return
         try:
             p.wait(timeout=frist)
-            return
+            break
         except subprocess.TimeoutExpired:
             continue
+    # Der Hauptprozess ist beendet; Kinder, die SIGINT ignorieren (Terraform-
+    # Provider), koennen in der Gruppe zurueckbleiben und werden sonst verwaist.
+    try:
+        os.killpg(p.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def aufruf(argv, cwd, logdatei, watchdog, env_extra=None):
@@ -646,6 +666,17 @@ def cmd_plan(a):
     return 0
 
 
+def letzter_pfad(phase):
+    return RUN_DIR / f"letzter_{phase}.json"
+
+
+def merke_deploy(ctx, werkzeug, pid):
+    """Vor dem Deploy festhalten, welcher Zyklus zuletzt VMs dieses Werkzeugs
+    angelegt haben kann; Grundlage fuer reset_fehler_fuer im naechsten precheck."""
+    ctx["letzter"][werkzeug] = pid
+    schreibe_json(letzter_pfad(ctx["phase"]), ctx["letzter"])
+
+
 def nachholen(plan, eintrag, phase):
     wurzel = eintrag.get("nachgeholt_fuer") or eintrag["id"]
     bisher = sum(1 for e in plan["eintraege"] if e.get("nachgeholt_fuer") == wurzel)
@@ -704,6 +735,7 @@ def zyklus(eintrag, plan, ctx):
         return
 
     # ---- deploy (Hauptkennzahl)
+    merke_deploy(ctx, w, pid)
     status(phase_im_zyklus="deploy")
     argv, cwd, env = werkzeug_argv(w, "deploy", p)
     d = aufruf(argv, cwd, cdir / "deploy.log", WATCHDOG_DEPLOY_S, env)
@@ -711,6 +743,7 @@ def zyklus(eintrag, plan, ctx):
     if d["watchdog"]:
         zeile.update(status="ungueltig", ungueltig_grund="watchdog_deploy")
         schreibe_zeile(zdatei, ZYKLUS_FELDER, zeile)
+        nachholen(plan, eintrag, phase)
         raise Halt(f"Zyklus {pid}: Watchdog im Deploy ausgeloest, Eingriff noetig")
 
     # ---- validate (Erfolg oder Fehler)
@@ -724,6 +757,7 @@ def zyklus(eintrag, plan, ctx):
     if rc == 3:
         zeile.update(status="ungueltig", ungueltig_grund="anmeldung")
         schreibe_zeile(zdatei, ZYKLUS_FELDER, zeile)
+        nachholen(plan, eintrag, phase)
         raise Halt(f"Zyklus {pid}: Anmeldung abgelehnt (Exit-Code 3)")
     verbindung = rc == 2
     if verbindung:
@@ -738,10 +772,10 @@ def zyklus(eintrag, plan, ctx):
     zeile.update(reset_s=r3(r["dauer_s"]), reset_exit=r["rc"],
                  fallback_marker=len(FALLBACK_RE.findall(
                      Path(r["log"]).read_text(encoding="utf-8", errors="replace"))))
-    ctx["letzter"][w] = pid
     if r["watchdog"]:
         zeile.update(status="ungueltig", ungueltig_grund="watchdog_reset")
         schreibe_zeile(zdatei, ZYKLUS_FELDER, zeile)
+        nachholen(plan, eintrag, phase)
         raise Halt(f"Zyklus {pid}: Watchdog im Reset ausgeloest, Eingriff noetig")
 
     # ---- vCenter-Tasks und -Events (direkt nach dem Zyklus)
@@ -829,8 +863,11 @@ def cmd_run(a):
         erledigt, letzter = set(), {}
         for z in lies_csv(RES_DIR / f"zyklen_{a.phase}.csv"):
             erledigt.add(int(z["plan_id"]))
-            if z["reset_s"]:
+            if z["deploy_s"]:  # Fallback fuer Reihen ohne letzter_<phase>.json (bis 1.3)
                 letzter[z["werkzeug"]] = int(z["plan_id"])
+        lp = letzter_pfad(a.phase)
+        if lp.exists():
+            letzter = {k: int(v) for k, v in json.loads(lp.read_text(encoding="utf-8")).items()}
         ctx = {"phase": a.phase, "inv": inv, "letzter": letzter}
 
         i = 0
