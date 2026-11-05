@@ -3771,3 +3771,11 @@ haupt,365,an,16,wab-an-13,13,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | t
 haupt,365,an,16,wab-an-14,14,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-14',809.679,1549.337,0,1,0
 haupt,365,an,16,wab-an-15,15,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-15',1259.962,1927.385,0,1,0
 haupt,365,an,16,wab-an-16,16,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-16',807.446,1526.944,0,1,0
+haupt,366,an,8,wab-an-01,01,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-01',529.409,922.312,0,1,0
+haupt,366,an,8,wab-an-02,02,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-02',554.516,979.469,0,1,0
+haupt,366,an,8,wab-an-03,03,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-03',556.190,970.567,0,1,0
+haupt,366,an,8,wab-an-04,04,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-04',553.138,985.623,0,1,0
+haupt,366,an,8,wab-an-05,05,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-05',556.321,986.371,0,1,0
+haupt,366,an,8,wab-an-06,06,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-06',552.807,956.357,0,1,0
+haupt,366,an,8,wab-an-07,07,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-07',552.801,956.355,0,1,0
+haupt,366,an,8,wab-an-08,08,1,,1,1,1,1,1,exists=1 Treffer | power=poweredOn | tools=guestToolsRunning | ip=Slot-Adresse gemeldet | hostname='wab-an-08',553.591,963.609,0,1,0
